@@ -55,6 +55,8 @@ class MiafFragment : Fragment() {
 
     private fun updateDisplayImages() {
         val constraints = MIAFReader.Constraints()
+        constraints.preference = MIAFReader.Preference.TRACK
+
         val roles = HashSet<MIAFReader.OutputRole>()
         roles.add(MIAFReader.OutputRole.MASTER)
 
