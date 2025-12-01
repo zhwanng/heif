@@ -26,3 +26,51 @@ cmake_install.cmake
 # MacOS
 .DS_Store
 .idea/
+/build/android/api-java/.cxx
+/build/android/api-java/build/.transforms
+/build/android/api-java/build/generated
+/build/android/api-java/build
+
+*~
+.kotlin
+.cxx
+
+proguard/
+target/
+
+# Built application files
+*.apk
+*.ap_
+
+# Files for the Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+
+# Generated files
+**/bin/
+**/gen/
+
+# Gradle files
+.gradle/
+**/build/
+
+# IntelliJ project files
+*.iml
+*.ipr
+*.iws
+.idea/
+
+.DS_Store
+app/seed.txt
+app/map.txt
+out/
+
+/build
+/app/release
+/app/seeds.txt
+/app/unused.txt
+/app/proguardMapping.txt
+

@@ -21,35 +21,30 @@ import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentStatePagerAdapter
 import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
-import kotlinx.android.synthetic.main.activity_image_viewer.*
+import com.nokia.miaf.gallery.databinding.ActivityImageViewerBinding
 import java.io.File
 import java.lang.ref.WeakReference
 
-class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener
-{
-    inner class ImagePageAdapter(fm: FragmentManager, fileList: List<File>) : FragmentStatePagerAdapter(fm)
-    {
+class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
+    private lateinit var binding: ActivityImageViewerBinding;
+
+    inner class ImagePageAdapter(fm: FragmentManager, fileList: List<File>) : FragmentStatePagerAdapter(fm) {
         private val mFiles = fileList
 
 
-        override fun getItem(position: Int): Fragment
-        {
+        override fun getItem(position: Int): Fragment {
             val imageFragment = MiafFragment()
             imageFragment.loadHEIFImage(mFiles[position])
-            if (position >= mViews.size)
-            {
+            if (position >= mViews.size) {
                 mViews.add(WeakReference(imageFragment))
-            }
-            else
-            {
+            } else {
                 mViews.set(position, WeakReference(imageFragment))
             }
 
             return imageFragment
         }
 
-        override fun getCount(): Int
-        {
+        override fun getCount(): Int {
             return mFiles.size
         }
     }
@@ -60,30 +55,27 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener
 
     private val IMAGE_FOLDER_PATH = Environment.getExternalStorageDirectory().absolutePath + "/miaf-files/"
 
-    override fun onPageScrollStateChanged(state: Int)
-    {
+    override fun onPageScrollStateChanged(state: Int) {
     }
 
-    override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int)
-    {
+    override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
     }
 
-    override fun onPageSelected(position: Int)
-    {
+    override fun onPageSelected(position: Int) {
     }
 
-    override fun onCreate(savedInstanceState: Bundle?)
-    {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_image_viewer)
-        view_pager.addOnPageChangeListener(this)
+
+        binding = ActivityImageViewerBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.viewPager.addOnPageChangeListener(this)
     }
 
-    override fun onResume()
-    {
+    override fun onResume() {
         super.onResume()
         val folder = File(IMAGE_FOLDER_PATH)
         mPagerAdapter = ImagePageAdapter(supportFragmentManager, loadFolder(folder))
-        view_pager.adapter = mPagerAdapter
+        binding.viewPager.adapter = mPagerAdapter
     }
 }

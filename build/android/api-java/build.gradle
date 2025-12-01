@@ -1,4 +1,6 @@
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+}
 
 def projectDir = getProjectDir().absolutePath
 def rootPath = file(projectDir + "/../../../").path
@@ -9,6 +11,7 @@ def javaApiNativePath = file(javaApiSourcePath + "/cpp/").path
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace 'com.nokia.heif'
 
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion

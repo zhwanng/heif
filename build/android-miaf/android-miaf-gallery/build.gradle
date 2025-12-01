@@ -1,6 +1,7 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+}
 
 def projectDir = getProjectDir().absolutePath
 def rootPath = file(projectDir + "/../../../srcs/").path
@@ -10,9 +11,11 @@ def galleryJavaPath = file(gallerySourcePath + "/java/").path
 def galleryResourcePath = file(gallerySourcePath + "/res/").path
 
 android {
+    namespace 'com.nokia.miaf.gallery'
     compileSdkVersion rootProject.ext.compileSdkVersion
+
     defaultConfig {
-        applicationId "com.nokia.miaf.gallery"
+
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -33,6 +36,21 @@ android {
         java.srcDirs = [galleryJavaPath]
         res.srcDirs = [galleryResourcePath]
     }
+
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+
 }
 
 dependencies {

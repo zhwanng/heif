@@ -1,24 +1,29 @@
 buildscript {
-    ext.kotlin_version = '1.4.10'
+    ext {
+        kotlin_version = '2.0.0'
+    }
+
     repositories {
         google()
-        jcenter()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+        maven { url "https://maven.aliyun.com/repository/public" }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.1'
+        classpath 'com.android.tools.build:gradle:8.8.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
 allprojects {
     repositories {
-        google()
-        jcenter()
+        google() // https://stackoverflow.com/a/50563942/5923915
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+        maven { url "https://maven.aliyun.com/repository/public" }
     }
-}
-
-task clean(type: Delete) {
-    delete rootProject.buildDir
 }
 
 ext {
@@ -26,5 +31,5 @@ ext {
     minSdkVersion = 27
     targetSdkVersion = 30
 
-    chosenAbiFilters = ["armeabi-v7a"]
+    chosenAbiFilters = ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]
 }

@@ -19,27 +19,31 @@ import android.view.*
 
 import com.nokia.heif.*
 import com.nokia.heif.utility.miaf.MIAFReader
-import kotlinx.android.synthetic.main.fragment_miaf.*
+import com.nokia.miaf.gallery.databinding.FragmentMiafBinding
 import java.io.File
 import java.util.HashSet
 
-class MiafFragment : Fragment()
-{
-    private val mMIAF : MIAFReader = MIAFReader()
+class MiafFragment : Fragment() {
+    private val mMIAF: MIAFReader = MIAFReader()
     private var mLoaded = false
     private var mFilename: String? = null
     private var mCurrentDisplayed: Base? = null
 
     private var mIsVisible = false
+    private lateinit var binding: FragmentMiafBinding;
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return  inflater.inflate(R.layout.fragment_miaf, container, false) as ViewGroup
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        binding = FragmentMiafBinding.inflate(inflater, container, false)
+        return binding.root;
     }
 
     override fun onResume() {
         super.onResume()
-        if (!mLoaded)
-        {
+        if (!mLoaded) {
             loadImage()
         }
     }
@@ -49,39 +53,34 @@ class MiafFragment : Fragment()
         mIsVisible = isVisibleToUser
     }
 
-    private fun updateDisplayImages()
-    {
+    private fun updateDisplayImages() {
         val constraints = MIAFReader.Constraints()
         val roles = HashSet<MIAFReader.OutputRole>()
         roles.add(MIAFReader.OutputRole.MASTER)
 
         val content = mMIAF.getContent(constraints, roles)
-        miaf_view.setContent(content.master)
+        binding.miafView.setContent(content.master)
         mCurrentDisplayed = content.master
     }
 
-    fun loadHEIFImage(file: File)
-    {
+    fun loadHEIFImage(file: File) {
         mFilename = file.absolutePath
         mMIAF.load(mFilename)
     }
 
-    private fun loadImage()
-    {
+    private fun loadImage() {
         updateDisplayImages()
-        registerForContextMenu(miaf_view)
-        miaf_view.setOnClickListener{ togglePlayback() }
-        miaf_view.setOnLongClickListener {
-            miaf_view.showContextMenu()
+        registerForContextMenu(binding.miafView)
+        binding.miafView.setOnClickListener { togglePlayback() }
+        binding.miafView.setOnLongClickListener {
+            binding.miafView.showContextMenu()
             return@setOnLongClickListener true
         }
     }
 
-    private fun togglePlayback()
-    {
-        if (mCurrentDisplayed is VideoTrack)
-        {
-            miaf_view.togglePlayback()
+    private fun togglePlayback() {
+        if (mCurrentDisplayed is VideoTrack) {
+            binding.miafView.togglePlayback()
         }
     }
 }

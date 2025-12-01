@@ -1,4 +1,6 @@
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+}
 
 def projectDir = getProjectDir().absolutePath
 def rootPath = file(projectDir + "/../../../srcs/").path
@@ -8,16 +10,15 @@ def androidUtilityJavaPath = file(androidUtilitySourcePath + "/java/").path
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace 'com.nokia.heif.utility'
+
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
     }
 
     buildTypes {
         debug {
-            debuggable true
             jniDebuggable true
         }
         release {
