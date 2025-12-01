@@ -21,13 +21,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HEIF
-{
+public class HEIF {
 
     private static final String TAG = "HEIF";
 
-    static
-    {
+    static {
         System.loadLibrary("heifjni");
     }
 
@@ -68,16 +66,14 @@ public class HEIF
     public static final FourCC BRAND_MP41 = new FourCC("mp41", true);
 
 
-    public enum PreloadMode
-    {
+    public enum PreloadMode {
         LOAD_ALL_DATA(0),
         LOAD_PREVIEW_DATA(1),
         LOAD_ON_DEMAND(2);
 
         private int value;
 
-        PreloadMode(int value)
-        {
+        PreloadMode(int value) {
             this.value = value;
         }
     }
@@ -86,26 +82,21 @@ public class HEIF
     /**
      * Creates a HEIF instance which can be used to read and write HEIF files
      */
-    public HEIF()
-    {
+    public HEIF() {
         createInstanceNative();
     }
 
     /**
      * Creates a HEIF instance from the given file
+     *
      * @param filename Path to the file to be opened
      * @throws Exception Thrown if the loading fails
      */
-    public HEIF(String filename)
-            throws Exception
-    {
+    public HEIF(String filename) throws Exception {
         this();
-        try
-        {
+        try {
             load(filename);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             release();
             throw ex;
         }
@@ -113,20 +104,16 @@ public class HEIF
 
     /**
      * Creates a HEIF instance from the given file
-     * @param filename Path to the file to be opened
+     *
+     * @param filename    Path to the file to be opened
      * @param preloadMode In which mode the file should be loaded
      * @throws Exception Thrown if the loading fails
      */
-    public HEIF(String filename, PreloadMode preloadMode)
-            throws Exception
-    {
+    public HEIF(String filename, PreloadMode preloadMode) throws Exception {
         this();
-        try
-        {
+        try {
             load(filename, preloadMode);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             release();
             throw ex;
         }
@@ -134,19 +121,15 @@ public class HEIF
 
     /**
      * Creates a HEIF instance from the given input stream
+     *
      * @param inputStream Input stream
      * @throws Exception Thrown if the loading fails
      */
-    public HEIF(InputStream inputStream)
-            throws Exception
-    {
+    public HEIF(InputStream inputStream) throws Exception {
         this();
-        try
-        {
+        try {
             load(inputStream);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             release();
             throw ex;
         }
@@ -156,23 +139,16 @@ public class HEIF
      * Registers a custom entity group type.
      *
      * @param groupClass The class of the custom group
-     * @param groupType The FourCC type of the custom group
+     * @param groupType  The FourCC type of the custom group
      * @throws Exception
      */
-    public static void registerEntityGroup(Class groupClass, FourCC groupType)
-            throws Exception
-    {
-        if (groupClass.equals(ENTITY_GROUP_CLASSES.get(groupType.toString())))
-        {
+    public static void registerEntityGroup(Class groupClass, FourCC groupType) throws Exception {
+        if (groupClass.equals(ENTITY_GROUP_CLASSES.get(groupType.toString()))) {
             // No need to add the class again
             return;
-        }
-        else if (!EntityGroup.class.isAssignableFrom(groupClass))
-        {
+        } else if (!EntityGroup.class.isAssignableFrom(groupClass)) {
             throw new Exception(ErrorHandler.INCORRECT_SUPERCLASS, "Given class does not inherit EntityGroup");
-        }
-        else if (ENTITY_GROUP_CLASSES.containsKey(groupType.toString()))
-        {
+        } else if (ENTITY_GROUP_CLASSES.containsKey(groupType.toString())) {
             throw new Exception(ErrorHandler.TYPE_ALREADY_EXISTS, "The type is already registered");
         }
         ENTITY_GROUP_CLASSES.put(groupType.toString(), groupClass);
@@ -182,18 +158,14 @@ public class HEIF
      * Registers a custom item property type
      *
      * @param groupClass The class of the custom property
-     * @param groupType The FourCC type of the custom property
+     * @param groupType  The FourCC type of the custom property
      * @throws Exception
      */
     public static void registerItemProperty(Class groupClass, FourCC groupType)
-            throws Exception
-    {
-        if (!ItemProperty.class.isAssignableFrom(groupClass))
-        {
+            throws Exception {
+        if (!ItemProperty.class.isAssignableFrom(groupClass)) {
             throw new Exception(ErrorHandler.INCORRECT_SUPERCLASS, "Given class does not inherit EntityGroup");
-        }
-        else if (ITEM_PROPERTY_CLASSES.containsKey(groupType.toString()))
-        {
+        } else if (ITEM_PROPERTY_CLASSES.containsKey(groupType.toString())) {
             throw new Exception(ErrorHandler.TYPE_ALREADY_EXISTS, "The type is already registered");
         }
         ITEM_PROPERTY_CLASSES.put(groupType.toString(), groupClass);
@@ -202,20 +174,15 @@ public class HEIF
     /**
      * Releases the resources held by the HEIF instance. This will invalidate every child item of the instance
      */
-    public void release()
-    {
-        if (mNativeHandle != 0)
-        {
+    public void release() {
+        if (mNativeHandle != 0) {
             destroyInstanceNative();
         }
     }
 
     @Override
-    protected void finalize()
-            throws Throwable
-    {
-        if (mNativeHandle != 0)
-        {
+    protected void finalize() throws Throwable {
+        if (mNativeHandle != 0) {
             destroyInstanceNative();
         }
         super.finalize();
@@ -225,13 +192,12 @@ public class HEIF
 
     /**
      * Loads a HEIF file. Can be called only once per instance.
-     * @param filename Filename including the path
+     *
+     * @param filename    Filename including the path
      * @param preloadMode In which mode the file should be loaded
      * @throws Exception
      */
-    public void load(String filename, PreloadMode preloadMode)
-            throws Exception
-    {
+    public void load(String filename, PreloadMode preloadMode) throws Exception {
         checkState();
         checkParameter(filename);
         loadNative(filename, preloadMode.value);
@@ -239,24 +205,22 @@ public class HEIF
 
     /**
      * Loads a HEIF file. Can be called only once per instance.
+     *
      * @param filename Filename including the path
      * @throws Exception
      */
-    public void load(String filename)
-            throws Exception
-    {
+    public void load(String filename) throws Exception {
         load(filename, PreloadMode.LOAD_ALL_DATA);
     }
 
     /**
      * Loads a HEIF file from a stream
+     *
      * @param inputStream The input stream for the file
      * @param preloadMode In which mode the file should be loaded
      * @throws Exception
      */
-    public void load(InputStream inputStream, PreloadMode preloadMode)
-            throws Exception
-    {
+    public void load(InputStream inputStream, PreloadMode preloadMode) throws Exception {
         checkState();
         checkParameter(inputStream);
         loadStreamNative(inputStream, preloadMode.value);
@@ -264,12 +228,11 @@ public class HEIF
 
     /**
      * Loads a HEIF file from a stream
+     *
      * @param inputStream The input stream for the file
      * @throws Exception
      */
-    public void load(InputStream inputStream)
-            throws Exception
-    {
+    public void load(InputStream inputStream) throws Exception {
         load(inputStream, PreloadMode.LOAD_ALL_DATA);
     }
 
@@ -277,20 +240,17 @@ public class HEIF
      * Saves the HEIF instance to a file. Can be called multiple times with the same instance.
      * Checks are performed to ensure that the file will be a valid HEIF file so the instance should have at least
      * a displayable primary image and a major and compatible brands set.
+     *
      * @param filename Filename including the path
      * @throws Exception
      */
-    public void save(String filename)
-            throws Exception
-    {
+    public void save(String filename) throws Exception {
         checkState();
         checkParameter(filename);
         saveNative(filename);
     }
 
-    public void save(OutputStream outputStream)
-            throws Exception
-    {
+    public void save(OutputStream outputStream) throws Exception {
         checkState();
         checkParameter(outputStream);
         saveStreamNative(outputStream);
@@ -298,17 +258,15 @@ public class HEIF
 
     /**
      * Returns all objects of Item type in this HEIF instance.
+     *
      * @return List of all items
      * @throws Exception
      */
-    public List<Item> getItems()
-            throws Exception
-    {
+    public List<Item> getItems() throws Exception {
         checkState();
         int itemCount = getItemCountNative();
         List<Item> items = new ArrayList<>(itemCount);
-        for (int index = 0; index < itemCount; index++)
-        {
+        for (int index = 0; index < itemCount; index++) {
             items.add(getItemNative(index));
         }
         return items;
@@ -316,17 +274,15 @@ public class HEIF
 
     /**
      * Returns all objects of ImageItem type in this HEIF instance
+     *
      * @return List of all ImageItems
      * @throws Exception
      */
-    public List<ImageItem> getImages()
-            throws Exception
-    {
+    public List<ImageItem> getImages() throws Exception {
         checkState();
         int itemCount = getImageCountNative();
         List<ImageItem> items = new ArrayList<>(itemCount);
-        for (int index = 0; index < itemCount; index++)
-        {
+        for (int index = 0; index < itemCount; index++) {
             items.add(getImageNative(index));
         }
         return items;
@@ -335,17 +291,15 @@ public class HEIF
     /**
      * Returns all master images of the HEIF instance.
      * Master images are all ImageItems except those that are either thumbnails or auxiliary images.
+     *
      * @return List of all master images
      * @throws Exception
      */
-    public List<ImageItem> getMasterImages()
-            throws Exception
-    {
+    public List<ImageItem> getMasterImages() throws Exception {
         checkState();
         int itemCount = getMasterImageCountNative();
         List<ImageItem> items = new ArrayList<>(itemCount);
-        for (int index = 0; index < itemCount; index++)
-        {
+        for (int index = 0; index < itemCount; index++) {
             items.add(getMasterImageNative(index));
         }
         return items;
@@ -353,19 +307,17 @@ public class HEIF
 
     /**
      * Returns all Items of the given type
+     *
      * @param typeFourCC FourCC code of the wanted type
      * @return List of all Items with the given type
      * @throws Exception
      */
-    public List<Item> getItemsOfType(FourCC typeFourCC)
-            throws Exception
-    {
+    public List<Item> getItemsOfType(FourCC typeFourCC) throws Exception {
         checkState();
         checkParameter(typeFourCC);
         int itemCount = getItemsOfTypeCountNative(typeFourCC.toString());
         List<Item> items = new ArrayList<>(itemCount);
-        for (int index = 0; index < itemCount; index++)
-        {
+        for (int index = 0; index < itemCount; index++) {
             items.add(getItemOfTypeNative(typeFourCC.toString(), index));
         }
         return items;
@@ -374,12 +326,11 @@ public class HEIF
     /**
      * Returns the primary item of the HEIF instance. Every valid HEIF file should have a primary image.
      * The Primary image can be either a coded image or a derived image.
+     *
      * @return The Primary image for this HEIF file
      * @throws Exception
      */
-    public ImageItem getPrimaryImage()
-            throws Exception
-    {
+    public ImageItem getPrimaryImage() throws Exception {
         checkState();
         return getPrimaryItemNative();
     }
@@ -387,12 +338,11 @@ public class HEIF
     /**
      * Sets the primary image for the HEIF instance.
      * Will replace any existing primary image. Old primary image will still remain in the instance as a master image
+     *
      * @param primaryImage The ImageItem to be set as primary image
      * @throws Exception
      */
-    public void setPrimaryImage(ImageItem primaryImage)
-            throws Exception
-    {
+    public void setPrimaryImage(ImageItem primaryImage) throws Exception {
         checkState();
         checkParameterAllowNull(primaryImage);
         setPrimaryItemNative(primaryImage);
@@ -400,17 +350,15 @@ public class HEIF
 
     /**
      * Returns all compatible brands of the HEIF instance.
+     *
      * @return List containing the compatible brands as Strings
      * @throws Exception
      */
-    public List<FourCC> getCompatibleBrands()
-            throws Exception
-    {
+    public List<FourCC> getCompatibleBrands() throws Exception {
         checkState();
         int brandCount = getCompatibleBrandsCountNative();
         List<FourCC> brands = new ArrayList<>(brandCount);
-        for (int index = 0; index < brandCount; index++)
-        {
+        for (int index = 0; index < brandCount; index++) {
             brands.add(new FourCC(getCompatibleBrandNative(index), true));
         }
         return brands;
@@ -418,12 +366,11 @@ public class HEIF
 
     /**
      * Adds a compatible brand for the HEIF instance
+     *
      * @param brand The brand FourCC as a String
      * @throws Exception
      */
-    public void addCompatibleBrand(FourCC brand)
-            throws Exception
-    {
+    public void addCompatibleBrand(FourCC brand) throws Exception {
         checkState();
         checkParameter(brand);
         addCompatibleBrandNative(brand.toString());
@@ -431,12 +378,11 @@ public class HEIF
 
     /**
      * Removes a compatible brand from the HEIF instance
+     *
      * @param brand The brand FourCC as a String
      * @throws Exception
      */
-    public void removeCompatibleBrand(FourCC brand)
-            throws Exception
-    {
+    public void removeCompatibleBrand(FourCC brand) throws Exception {
         checkState();
         checkParameter(brand);
         removeCompatibleBrandNative(brand.toString());
@@ -445,12 +391,11 @@ public class HEIF
     /**
      * Returns the major brand of the HEIF instance
      * Every valid HEIF file must have the major brand set
+     *
      * @return The brand FourCC as a String
      * @throws Exception
      */
-    public FourCC getMajorBrand()
-            throws Exception
-    {
+    public FourCC getMajorBrand() throws Exception {
         checkState();
         return new FourCC(getMajorBrandNative(), true);
     }
@@ -458,12 +403,11 @@ public class HEIF
     /**
      * Sets the major brand for the HEIF instance.
      * Every valid HEIF file must have a major brand so one must be set before saving a HEIF instance to file
+     *
      * @param brand The brand FourCC as a String
      * @throws Exception
      */
-    public void setMajorBrand(FourCC brand)
-            throws Exception
-    {
+    public void setMajorBrand(FourCC brand) throws Exception {
         checkState();
         checkParameter(brand);
         setMajorBrandNative(brand.toString());
@@ -471,17 +415,15 @@ public class HEIF
 
     /**
      * Returns all the ItemProperties in the HEIF instance
+     *
      * @return List of all the ItemProperties
      * @throws Exception
      */
-    public List<ItemProperty> getItemProperties()
-            throws Exception
-    {
+    public List<ItemProperty> getItemProperties() throws Exception {
         checkState();
         int itemPropertyCount = getPropertyCountNative();
         List<ItemProperty> properties = new ArrayList<>(itemPropertyCount);
-        for (int index = 0; index < itemPropertyCount; index++)
-        {
+        for (int index = 0; index < itemPropertyCount; index++) {
             properties.add(getPropertyNative(index));
         }
         return properties;
@@ -489,35 +431,30 @@ public class HEIF
 
     /**
      * Returns all the EntityGroups in the HEIF instance
+     *
      * @return List of all the EntityGroups
      * @throws Exception
      */
-    public List<EntityGroup> getEntityGroups()
-            throws Exception
-    {
+    public List<EntityGroup> getEntityGroups() throws Exception {
         return getEntityGroupsPrivate(null);
     }
 
 
-    public List<EntityGroup> getEntityGroupsByType(FourCC type)
-            throws Exception
-    {
+    public List<EntityGroup> getEntityGroupsByType(FourCC type) throws Exception {
         return getEntityGroupsPrivate(type);
     }
 
     /**
      * Returns all the tracks in the HEIF file
+     *
      * @return List of the tracks
      * @throws Exception
      */
-    public List<Track> getTracks()
-            throws Exception
-    {
+    public List<Track> getTracks() throws Exception {
         checkState();
         int trackCount = getTrackCountNative();
         List<Track> tracks = new ArrayList<>(trackCount);
-        for (int index = 0; index < trackCount; index++)
-        {
+        for (int index = 0; index < trackCount; index++) {
             tracks.add(getTrackNative(index));
         }
         return tracks;
@@ -525,17 +462,15 @@ public class HEIF
 
     /**
      * Returns a list of all the alternative track groups in the HEIF file
+     *
      * @return List of all the alternative track groups
      * @throws Exception
      */
-    public List<AlternativeTrackGroup> getAlternativeTrackGroups()
-            throws Exception
-    {
+    public List<AlternativeTrackGroup> getAlternativeTrackGroups() throws Exception {
         checkState();
         int count = getAlternativeTrackGroupCountNative();
         List<AlternativeTrackGroup> result = new ArrayList<>(count);
-        for (int index = 0; index < count; index++)
-        {
+        for (int index = 0; index < count; index++) {
             result.add(getAlternativeTrackGroupNative(index));
         }
         return result;
@@ -544,8 +479,7 @@ public class HEIF
     /**
      * Resets the entity group class registrations
      */
-    static public void resetEntityGroupClasses()
-    {
+    static public void resetEntityGroupClasses() {
         ENTITY_GROUP_CLASSES = new HashMap<>();
         ENTITY_GROUP_CLASSES.put(FOURCC_EQUIVALENCE.toString(), EquivalenceGroup.class);
         ENTITY_GROUP_CLASSES.put(FOURCC_STEREO_PAIR.toString(), StereoPairGroup.class);
@@ -555,8 +489,7 @@ public class HEIF
     /**
      * Resets the item property class registrations
      */
-    static public void resetItemPropertyClasses()
-    {
+    static public void resetItemPropertyClasses() {
         ITEM_PROPERTY_CLASSES = new HashMap<>();
         ITEM_PROPERTY_CLASSES.put(FOURCC_AUXILIARY_PROPERTY.toString(), AuxiliaryProperty.class);
         ITEM_PROPERTY_CLASSES.put(FOURCC_CLEAN_APERTURE_PROPERTY.toString(), CleanApertureProperty.class);
@@ -571,8 +504,7 @@ public class HEIF
     }
 
 
-    static private void resetItemClasses()
-    {
+    static private void resetItemClasses() {
         ITEM_CLASSES = new HashMap<>();
         ITEM_CLASSES.put(FOURCC_HEVC.toString(), HEVCImageItem.class);
         ITEM_CLASSES.put(FOURCC_AVC.toString(), AVCImageItem.class);
@@ -585,8 +517,7 @@ public class HEIF
         ITEM_CLASSES.put("mpg7", MPEG7Item.class);
     }
 
-    static private void resetDecoderConfigClasses()
-    {
+    static private void resetDecoderConfigClasses() {
         DECODER_CONFIG_CLASSES = new HashMap<>();
         DECODER_CONFIG_CLASSES.put(FOURCC_HEVC.toString(), HEVCDecoderConfig.class);
         DECODER_CONFIG_CLASSES.put(FOURCC_AVC.toString(), AVCDecoderConfig.class);
@@ -594,8 +525,7 @@ public class HEIF
         DECODER_CONFIG_CLASSES.put(FOURCC_JPEG.toString(), JPEGDecoderConfig.class);
     }
 
-    static private void resetSampleClasses()
-    {
+    static private void resetSampleClasses() {
         SAMPLE_CLASSES = new HashMap<>();
         SAMPLE_CLASSES.put(FOURCC_HEVC.toString(), HEVCSample.class);
         SAMPLE_CLASSES.put(FOURCC_AVC.toString(), AVCSample.class);
@@ -603,8 +533,7 @@ public class HEIF
 
     }
 
-    static private void resetTrackClasses()
-    {
+    static private void resetTrackClasses() {
         TRACK_CLASSES = new HashMap<>();
         TRACK_CLASSES.put(FOURCC_AUDIO_TRACK.toString(), AudioTrack.class);
         TRACK_CLASSES.put(FOURCC_IMAGE_SEQUENCE.toString(), ImageSequence.class);
@@ -612,16 +541,13 @@ public class HEIF
     }
 
     private List<EntityGroup> getEntityGroupsPrivate(FourCC type)
-            throws Exception
-    {
+            throws Exception {
         checkState();
         int entityGroupCount = getEntityGroupCountNative();
         List<EntityGroup> entityGroups = new ArrayList<>(entityGroupCount);
-        for (int index = 0; index < entityGroupCount; index++)
-        {
+        for (int index = 0; index < entityGroupCount; index++) {
             EntityGroup group = getEntityGroupNative(index);
-            if (type == null || group.getType().equals(type))
-            {
+            if (type == null || group.getType().equals(type)) {
                 entityGroups.add(group);
             }
         }
@@ -630,43 +556,30 @@ public class HEIF
 
     /**
      * Verifies that the HEIF instance hasn't already been released and throws an exception if it has been.
+     *
      * @throws Exception
      */
-    private void checkState()
-            throws Exception
-    {
-        if (mNativeHandle == 0)
-        {
+    private void checkState() throws Exception {
+        if (mNativeHandle == 0) {
             throw new Exception(ErrorHandler.OBJECT_ALREADY_DELETED, "Object already deleted");
         }
     }
 
-    private void checkParameter(Object parameter)
-            throws Exception
-    {
-        if (parameter == null)
-        {
+    private void checkParameter(Object parameter) throws Exception {
+        if (parameter == null) {
             throw new Exception(ErrorHandler.INVALID_PARAMETER, "Parameter is null");
-        }
-        else if (parameter instanceof Base)
-        {
+        } else if (parameter instanceof Base) {
             Base parameterAsBase = (Base) parameter;
-            if (parameterAsBase.mNativeHandle == 0)
-            {
+            if (parameterAsBase.mNativeHandle == 0) {
                 throw new Exception(ErrorHandler.OBJECT_ALREADY_DELETED, "Object already deleted");
-            }
-            else if (parameterAsBase.getParentHEIF() != this)
-            {
+            } else if (parameterAsBase.getParentHEIF() != this) {
                 throw new Exception(ErrorHandler.WRONG_HEIF_INSTANCE, "Incorrect HEIF instance");
             }
         }
     }
 
-    private void checkParameterAllowNull(Object parameter)
-            throws Exception
-    {
-        if (parameter != null)
-        {
+    private void checkParameterAllowNull(Object parameter) throws Exception {
+        if (parameter != null) {
             checkParameter(parameter);
         }
     }
@@ -678,8 +591,7 @@ public class HEIF
     static private Map<String, Class> ENTITY_GROUP_CLASSES = null;
     static private Map<String, Class> TRACK_CLASSES = null;
 
-    static
-    {
+    static {
         resetItemClasses();
         resetItemPropertyClasses();
         resetDecoderConfigClasses();
@@ -688,93 +600,67 @@ public class HEIF
         resetTrackClasses();
     }
 
-    private Base createBase(Class clazz, long nativeHandle)
-    {
-        try
-        {
-            if (clazz != null)
-            {
+    private Base createBase(Class clazz, long nativeHandle) {
+        try {
+            if (clazz != null) {
                 Constructor constructor = clazz.getDeclaredConstructor(HEIF.class, Long.TYPE);
                 return (Base) constructor.newInstance(this, nativeHandle);
-            }
-            else
-            {
+            } else {
                 return null;
             }
-        }
-
-        catch (java.lang.Exception ex)
-        {
+        } catch (java.lang.Exception ex) {
             ex.printStackTrace();
             return null;
         }
     }
 
-    protected Base createItem(String fourCC, long nativeHandle)
-    {
+    protected Base createItem(String fourCC, long nativeHandle) {
         Class itemClass = ITEM_CLASSES.get(fourCC);
-        if (itemClass != null)
-        {
+        if (itemClass != null) {
             return createBase(itemClass, nativeHandle);
-        }
-        else
-        {
+        } else {
             return null;
         }
     }
 
-    protected Base createItemProperty(String fourCC, long nativeHandle)
-    {
+    protected Base createItemProperty(String fourCC, long nativeHandle) {
         Class itemClass = ITEM_PROPERTY_CLASSES.get(fourCC);
-        if (itemClass == null)
-        {
+        if (itemClass == null) {
             itemClass = RawProperty.class;
         }
         return createBase(itemClass, nativeHandle);
     }
 
-    protected Base createDecoderConfig(String fourCC, long nativeHandle)
-    {
+    protected Base createDecoderConfig(String fourCC, long nativeHandle) {
         Class itemClass = DECODER_CONFIG_CLASSES.get(fourCC);
-        if (itemClass == null)
-        {
+        if (itemClass == null) {
             itemClass = DecoderConfig.class;
         }
         return createBase(itemClass, nativeHandle);
     }
 
-    protected Base createSample(String fourCC, long nativeHandle)
-    {
+    protected Base createSample(String fourCC, long nativeHandle) {
         Class itemClass = SAMPLE_CLASSES.get(fourCC);
-        if (itemClass != null)
-        {
+        if (itemClass != null) {
             return createBase(itemClass, nativeHandle);
-        }
-        else
-        {
+        } else {
             return null;
         }
     }
 
-    protected Base createEntityGroup(String fourCC, long nativeHandle)
-    {
+    protected Base createEntityGroup(String fourCC, long nativeHandle) {
         Class itemClass = ENTITY_GROUP_CLASSES.get(fourCC);
-        if (itemClass == null)
-        {
+        if (itemClass == null) {
             itemClass = EntityGroup.class;
         }
         return createBase(itemClass, nativeHandle);
     }
 
-    protected Base createTrack(String fourCC, long nativeHandle)
-    {
+    protected Base createTrack(String fourCC, long nativeHandle) {
         Class itemClass = TRACK_CLASSES.get(fourCC);
-        if (itemClass != null)
-        {
+        if (itemClass != null) {
             return createBase(itemClass, nativeHandle);
-        }
-        else
-        {
+        } else {
             return null;
         }
     }
@@ -832,8 +718,10 @@ public class HEIF
     private native Track getTrackNative(int index);
 
     private native int getAlternativeTrackGroupCountNative();
+
     private native AlternativeTrackGroup getAlternativeTrackGroupNative(int index);
 
     private native int getEntityGroupCountNative();
+
     private native EntityGroup getEntityGroupNative(int index);
 }

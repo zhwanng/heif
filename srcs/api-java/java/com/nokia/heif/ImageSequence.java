@@ -24,8 +24,7 @@ public final class ImageSequence extends VideoTrack
      * @param timescale The timescale of the track. How many timescale units are per second.
      * @throws Exception
      */
-    public ImageSequence(HEIF heif, int timescale)
-            throws Exception
+    public ImageSequence(HEIF heif, int timescale) throws Exception
     {
         super(heif);
         mNativeHandle = createContextNative(heif);

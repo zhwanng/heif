@@ -26,8 +26,7 @@ import java.util.Set;
 import static com.nokia.heif.AuxiliaryProperty.ALPHA_MASK_URN;
 import static com.nokia.heif.AuxiliaryProperty.DEPTH_URN;
 
-public class MIAFReader extends HEIF
-{
+public class MIAFReader extends HEIF {
     private static String TAG = "MIAFReader";
 
     public MIAFReader() {
@@ -36,8 +35,9 @@ public class MIAFReader extends HEIF
 
     /**
      * Query MIAF file content.
+     *
      * @param constraints Dimensions constraints and content preference.
-     * @param roles Roles of wanted images (master, thumbnail, aux, all)
+     * @param roles       Roles of wanted images (master, thumbnail, aux, all)
      * @return Retrieved content.
      * @throws Exception
      */
@@ -56,8 +56,7 @@ public class MIAFReader extends HEIF
             // If no track preference is indicated, return the primary item.
             if (constraints.preference != Preference.TRACK) {
                 seed = primaryItem;
-            }
-            else { // otherwise seed is set to equal to any track that fills requirements
+            } else { // otherwise seed is set to equal to any track that fills requirements
                 List<Track> tracks = super.getTracks();
                 for (Track track : tracks) {
                     // TODO should also check that the track conforms to MIAF specification
@@ -71,16 +70,14 @@ public class MIAFReader extends HEIF
             // Is track preference indicated?
             if (constraints.preference == Preference.TRACK) {
                 for (Base entry : alternatives) {
-                    if (entry instanceof Track &&
-                            checkConstraints(entry, constraints)) {
+                    if (entry instanceof Track && checkConstraints(entry, constraints)) {
                         seed = entry;
                         break;
                     }
                 }
             } else if (constraints.preference == Preference.IMAGE) {
                 for (Base entry : alternatives) {
-                    if (entry instanceof ImageItem &&
-                            checkConstraints(entry, constraints)) {
+                    if (entry instanceof ImageItem && checkConstraints(entry, constraints)) {
                         seed = entry;
                         break;
                     }
@@ -123,6 +120,7 @@ public class MIAFReader extends HEIF
 
     /**
      * Return alternative group members.
+     *
      * @param object Track or item to search from alternate groups.
      * @return List of alternate group members, null if the object was not found from any alternative gruop.
      * @throws Exception
@@ -131,8 +129,7 @@ public class MIAFReader extends HEIF
         List<EntityGroup> groups = super.getEntityGroupsByType(FOURCC_ALTERNATE);
         for (EntityGroup group : groups) {
             List<Base> members = group.getMembers();
-            if (members.contains(object))
-            {
+            if (members.contains(object)) {
                 return members;
             }
         }
@@ -141,7 +138,7 @@ public class MIAFReader extends HEIF
     }
 
     /**
-     * @param input An ImageItem or a VideoTrack.
+     * @param input       An ImageItem or a VideoTrack.
      * @param constraints Constraints for the wanted content: maximum dimensions.
      * @return True if the input fulfils constraints and is decodable.
      * @throws Exception in case input is not a video track or an image item.
@@ -173,67 +170,51 @@ public class MIAFReader extends HEIF
 
     /**
      * Check if it is possible to decode an image item or a video track (/image sequence).
+     *
      * @param base An image item or a track.
      * @return True if it is possible to decode the item, false otherwise.
      */
-    private Boolean isDecodable(Base base)
-    {
-        if (base instanceof ImageItem)
-        {
-            try
-            {
-                if (base instanceof CodedImageItem)
-                {
+    private Boolean isDecodable(Base base) {
+        if (base instanceof ImageItem) {
+            try {
+                if (base instanceof CodedImageItem) {
                     return DecoderUtil.isDecodable(base);
                 }
-                if (base instanceof GridImageItem)
-                {
+                if (base instanceof GridImageItem) {
                     GridImageItem gridItem = (GridImageItem) base;
 
                     // In a MIAF file all input images of a grid use same decoder configuration,
                     // so it is enough to test the first one.
-                    if (gridItem.getColumnCount() == 0 || gridItem.getRowCount() == 0)
-                    {
+                    if (gridItem.getColumnCount() == 0 || gridItem.getRowCount() == 0) {
                         return true; // empty grid
                     }
                     ImageItem image = gridItem.getImage(0, 0);
                     return isDecodable(image);
                 }
-                if (base instanceof OverlayImageItem)
-                {
+                if (base instanceof OverlayImageItem) {
                     // Check all items in the overlay.
                     List<OverlayImageItem.OverlayedImage> overlayItems = ((OverlayImageItem) base).getOverlayedImages();
-                    for (OverlayImageItem.OverlayedImage overlayImage : overlayItems)
-                    {
-                        if (isDecodable(overlayImage.image) == false)
-                        {
+                    for (OverlayImageItem.OverlayedImage overlayImage : overlayItems) {
+                        if (isDecodable(overlayImage.image) == false) {
                             return false;
                         }
                     }
                     return true;
                 }
-                if (base instanceof IdentityImageItem)
-                {
+                if (base instanceof IdentityImageItem) {
                     return isDecodable(((IdentityImageItem) base).getImage());
                 }
-            }
-            catch (java.lang.Exception e)
-            {
+            } catch (java.lang.Exception e) {
                 Log.e(TAG, "isDecodable() failed: " + e.getMessage());
                 return false;
             }
-        }
-        else if (base instanceof VideoTrack)
-        {
-            try
-            {
-                VideoTrack track = (VideoTrack)base;
+        } else if (base instanceof VideoTrack) {
+            try {
+                VideoTrack track = (VideoTrack) base;
                 List<VideoSample> samples = track.getVideoSamples();
                 if (samples.size() == 0) return false;
                 return DecoderUtil.isDecodable(samples.get(0));
-            }
-            catch (java.lang.Exception e)
-            {
+            } catch (java.lang.Exception e) {
                 Log.e(TAG, "isDecodable() failed: " + e.getMessage());
                 return false;
             }
@@ -254,25 +235,20 @@ public class MIAFReader extends HEIF
         }
 
         List<Track> auxTracks = track.getAuxiliaries();
-        for (Track auxTrack : auxTracks)
-        {
+        for (Track auxTrack : auxTracks) {
             String aux = ((ImageSequence) auxTrack).getAuxTypeInfo();
             if ((roles.contains(OutputRole.AUXILIARY_ALPHA) && aux.equals(ALPHA_MASK_URN)) ||
-                (roles.contains(OutputRole.AUXILIARY_DEPTH) && aux.equals(DEPTH_URN)))
-            {
+                    (roles.contains(OutputRole.AUXILIARY_DEPTH) && aux.equals(DEPTH_URN))) {
                 if (isDecodable(auxTrack)) {
                     content.auxTracks.add(auxTrack);
                     continue;
-                }
-                else {
+                } else {
                     List<Base> alternatives = getAlternateGroupMembers(auxTrack);
-                    if (alternatives != null)
-                    {
-                        for (Base alternative : alternatives)
-                        {
+                    if (alternatives != null) {
+                        for (Base alternative : alternatives) {
                             if (alternative instanceof VideoTrack &&
                                     isDecodable(alternative)) {
-                                content.auxTracks.add((Track)alternative);
+                                content.auxTracks.add((Track) alternative);
                             }
                         }
                     }
@@ -301,8 +277,7 @@ public class MIAFReader extends HEIF
                 final AuxiliaryProperty prop = aux.getAuxiliaryProperty();
                 final String propertyType = prop.getType();
                 if ((roles.contains(OutputRole.AUXILIARY_ALPHA) && propertyType.equals(ALPHA_MASK_URN)) ||
-                        (roles.contains(OutputRole.AUXILIARY_DEPTH) && propertyType.equals(AuxiliaryProperty.DEPTH_URN)))
-                {
+                        (roles.contains(OutputRole.AUXILIARY_DEPTH) && propertyType.equals(AuxiliaryProperty.DEPTH_URN))) {
                     content.auxiliaries.add(aux);
                 }
             }

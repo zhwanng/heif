@@ -15,26 +15,20 @@ package com.nokia.heif;
 /**
  * DecoderConfig for JPEG data
  */
-public final class JPEGDecoderConfig extends DecoderConfig
-{
+public final class JPEGDecoderConfig extends DecoderConfig {
     /**
      * Creates a new JPEGDecoderConfig to the given HEIF instance
      *
-     * @param heif The parent HEIF instance for the new object
+     * @param heif   The parent HEIF instance for the new object
      * @param config Byte array containing the config data; may be empty
      * @throws Exception Thrown if the parent HEIF instance is invalid
      */
-    public JPEGDecoderConfig(HEIF heif, byte[] config)
-            throws Exception
-    {
+    public JPEGDecoderConfig(HEIF heif, byte[] config) throws Exception {
         super(heif);
         mNativeHandle = createContextNative(heif);
-        try
-        {
+        try {
             setConfig(config);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             destroy();
             throw ex;
         }
@@ -42,11 +36,11 @@ public final class JPEGDecoderConfig extends DecoderConfig
 
     /**
      * Protected constructor, used to create an object from the native side
-     * @param heif The parent HEIF instance for the new object
+     *
+     * @param heif         The parent HEIF instance for the new object
      * @param nativeHandle A handle to the corresponding C++ object
      */
-    protected JPEGDecoderConfig(HEIF heif, long nativeHandle)
-    {
+    protected JPEGDecoderConfig(HEIF heif, long nativeHandle) {
         super(heif, nativeHandle);
     }
 

@@ -16,38 +16,35 @@ package com.nokia.heif;
 /**
  * DecoderConfig contains the decoder specific information attached to a CodedImageItem
  */
-public class DecoderConfig extends Base
-{
+public class DecoderConfig extends Base {
 
     /**
      * Constructor, abstract class so not called directly
+     *
      * @param heif The parent HEIF instance for the new object
-     * @exception Exception Thrown if the parent HEIF instance is invalid
+     * @throws Exception Thrown if the parent HEIF instance is invalid
      */
-    protected DecoderConfig(HEIF heif)
-            throws Exception
-    {
+    protected DecoderConfig(HEIF heif) throws Exception {
         super(heif);
     }
 
     /**
      * Protected constructor, abstract class so not called directly
-     * @param heif The parent HEIF instance for the new object
+     *
+     * @param heif         The parent HEIF instance for the new object
      * @param nativeHandle A handle to the corresponding C++ object
      */
-    protected DecoderConfig(HEIF heif, long nativeHandle)
-    {
+    protected DecoderConfig(HEIF heif, long nativeHandle) {
         super(heif, nativeHandle);
     }
 
     /**
      * Sets the decoder specific information
+     *
      * @param config Config as a byte array
      * @throws Exception
      */
-    public void setConfig(byte[] config)
-            throws Exception
-    {
+    public void setConfig(byte[] config) throws Exception {
         checkState();
         checkParameter(config);
         setConfigNative(config);
@@ -55,19 +52,17 @@ public class DecoderConfig extends Base
 
     /**
      * Returns the decoder specific information
+     *
      * @return The decoder specific information as a byte array
      * @throws Exception
      */
-    public byte[] getConfig()
-            throws Exception
-    {
+    public byte[] getConfig() throws Exception {
         checkState();
         return getConfigNative();
     }
 
     @Override
-    protected void destroyNative()
-    {
+    protected void destroyNative() {
         destroyContextNative();
     }
 

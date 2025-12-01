@@ -18,26 +18,20 @@ import java.util.List;
 /**
  * A track containing video samples.
  */
-public class VideoTrack extends Track
-{
+public class VideoTrack extends Track {
     /**
      * Creates a new AudioTrack to the given HEIF instance
      *
-     * @param heif The parent HEIF instance for the new object
+     * @param heif      The parent HEIF instance for the new object
      * @param timescale The timescale of the track. How many timescale units are per second
      * @throws Exception
      */
-    public VideoTrack(HEIF heif, int timescale)
-            throws Exception
-    {
+    public VideoTrack(HEIF heif, int timescale) throws Exception {
         super(heif);
         mNativeHandle = createContextNative(heif);
-        try
-        {
+        try {
             setTimescale(timescale);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             destroy();
             throw ex;
         }
@@ -45,12 +39,11 @@ public class VideoTrack extends Track
 
     /**
      * Protected constructor, called by child class
+     *
      * @param heif
      * @throws Exception
      */
-    protected VideoTrack(HEIF heif)
-            throws Exception
-    {
+    protected VideoTrack(HEIF heif) throws Exception {
         super(heif);
     }
 
@@ -60,8 +53,7 @@ public class VideoTrack extends Track
      * @param heif         The parent HEIF instance for the new object
      * @param nativeHandle A handle to the corresponding C++ object
      */
-    protected VideoTrack(HEIF heif, long nativeHandle)
-    {
+    protected VideoTrack(HEIF heif, long nativeHandle) {
         super(heif, nativeHandle);
     }
 
@@ -72,13 +64,11 @@ public class VideoTrack extends Track
      * @throws Exception
      */
     public List<VideoSample> getVideoSamples()
-            throws Exception
-    {
+            throws Exception {
         checkState();
         List<Sample> samples = super.getSamples();
         List<VideoSample> result = new ArrayList<>(samples.size());
-        for(Sample sample : samples)
-        {
+        for (Sample sample : samples) {
             result.add((VideoSample) sample);
         }
         return result;
@@ -91,8 +81,7 @@ public class VideoTrack extends Track
      * @throws Exception
      */
     public void addSample(VideoSample sample)
-            throws Exception
-    {
+            throws Exception {
         checkState();
         checkParameter(sample);
         addSampleNative(sample);
@@ -100,11 +89,11 @@ public class VideoTrack extends Track
 
     /**
      * Get video track display dimensions
+     *
      * @throws Exception
      */
     public Size getDisplaySize()
-            throws Exception
-    {
+            throws Exception {
         checkState();
         return new Size(getDisplayWidthNative(), getDisplayHeightNative());
     }

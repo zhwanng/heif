@@ -22,19 +22,17 @@ import com.nokia.heif.HEVCSample;
 import com.nokia.heif.ImageItem;
 import com.nokia.heif.ImageSequence;
 import com.nokia.heif.Size;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-class HEIFExample
-{
-    static void loadSingleImage()
-    {
+class HEIFExample {
+    static void loadSingleImage() {
         String filename = "something/something.heic";
         // Create an instance of the HEIF library,
         HEIF heif = new HEIF();
-        try
-        {
+        try {
             // Load the file
             heif.load(filename);
 
@@ -42,9 +40,8 @@ class HEIFExample
             ImageItem primaryImage = heif.getPrimaryImage();
 
             // Check the type, assuming that it's a HEVC image
-            if (primaryImage instanceof HEVCImageItem)
-            {
-                HEVCImageItem hevcImageItem = (HEVCImageItem)primaryImage;
+            if (primaryImage instanceof HEVCImageItem) {
+                HEVCImageItem hevcImageItem = (HEVCImageItem) primaryImage;
                 byte[] decoderConfig = hevcImageItem.getDecoderConfig().getConfig();
                 byte[] imageData = hevcImageItem.getItemDataAsArray();
                 // Feed the data to a decoder
@@ -53,15 +50,13 @@ class HEIFExample
         }
         // All exceptions thrown by the HEIF library are of the same type
         // Check the error code to see what happened
-        catch (Exception e)
-        {
+        catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
-    static void createAndSaveAFile()
-    {
+    static void createAndSaveAFile() {
         // These should contain the encoded image data and the corresponding decoder config data
         int width = 640;
         int height = 480;
@@ -74,13 +69,12 @@ class HEIFExample
 
         // Create an instance of the HEIF library,
         HEIF heif = new HEIF();
-        try
-        {
+        try {
             // This example assumes that the data is HEVC
             // The constructor requires the HEIF instance, the size of the image,
             // the decoder config data and the image data
             HEVCImageItem imageItem = new HEVCImageItem(heif, new Size(width, height),
-                                                        decoderConfig, imageData);
+                    decoderConfig, imageData);
             // Every HEIF image should have a primary image
             heif.setPrimaryImage(imageItem);
 
@@ -94,14 +88,12 @@ class HEIFExample
         }
         // All exceptions thrown by the HEIF library are of the same type
         // Check the error code to see what happened
-        catch (Exception e)
-        {
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    static void createImageSequence()
-    {
+    static void createImageSequence() {
         String outputFolderPath = "/heic_output/";
         File outputFolder = new File(outputFolderPath);
         if (!outputFolder.exists()) {
@@ -121,7 +113,7 @@ class HEIFExample
         // !!!! this is fake data - initiate list of fake image sequence sample data, normally you would get this from video encoder.
         List<byte[]> imageSequenceSampleDatas = new ArrayList<>();
         imageSequenceSampleDatas.add(imageData);  // first image sequence sample is same as still image
-        for (int i = 0; i < 7; i++){
+        for (int i = 0; i < 7; i++) {
             byte[] imageSequenceSampleData = new byte[50001]; // fake data
             imageSequenceSampleDatas.add(imageSequenceSampleData);
         }
@@ -131,8 +123,7 @@ class HEIFExample
 
         // Create an instance of the HEIF library,
         HEIF heif = new HEIF();
-        try
-        {
+        try {
             // This example assumes that the data is HEVC
 
             ImageSequence imageSeq = new ImageSequence(heif, timescale);
@@ -144,8 +135,7 @@ class HEIFExample
 
             // The constructor requires the HEIF instance, the size of the image,
             // the decoder config data and the image data
-            HEVCImageItem imageItem = new HEVCImageItem(heif, new Size(width, height),
-                decoderConfig, imageData);
+            HEVCImageItem imageItem = new HEVCImageItem(heif, new Size(width, height), decoderConfig, imageData);
             // Every HEIF image should have a primary image
             heif.setPrimaryImage(imageItem);
 
@@ -161,19 +151,16 @@ class HEIFExample
         }
         // All exceptions thrown by the HEIF library are of the same type
         // Check the error code to see what happened
-        catch (Exception e)
-        {
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    static void loadGridImage()
-    {
+    static void loadGridImage() {
         String filename = "something/grid_something.heic";
         // Create an instance of the HEIF library,
         HEIF heif = new HEIF();
-        try
-        {
+        try {
             // Load the file
             heif.load(filename);
 
@@ -181,14 +168,11 @@ class HEIFExample
             ImageItem primaryImage = heif.getPrimaryImage();
 
             // Check the type, assuming that it's a Grid image
-            if (primaryImage instanceof GridImageItem)
-            {
+            if (primaryImage instanceof GridImageItem) {
                 GridImageItem gridImageItem = (GridImageItem) primaryImage;
                 // Go through the grid
-                for (int rowIndex = 0; rowIndex < gridImageItem.getRowCount(); rowIndex++)
-                {
-                    for (int columnIndex = 0; columnIndex < gridImageItem.getColumnCount(); columnIndex++)
-                    {
+                for (int rowIndex = 0; rowIndex < gridImageItem.getRowCount(); rowIndex++) {
+                    for (int columnIndex = 0; columnIndex < gridImageItem.getColumnCount(); columnIndex++) {
                         // We assume that the image items are HEVC
                         HEVCImageItem hevcImageItem = (HEVCImageItem) gridImageItem.getImage(columnIndex, rowIndex);
                         byte[] decoderConfig = hevcImageItem.getDecoderConfig().getConfig();
@@ -200,14 +184,12 @@ class HEIFExample
         }
         // All exceptions thrown by the HEIF library are of the same type
         // Check the error code to see what happened
-        catch (Exception e)
-        {
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    static void saveGridImage()
-    {
+    static void saveGridImage() {
         // These should contain the encoded image data and the corresponding decoder config data
         int width = 640;
         int height = 480;
@@ -218,23 +200,20 @@ class HEIFExample
         String filename = "something/grid_something.heic";
         // Create an instance of the HEIF library,
         HEIF heif = new HEIF();
-        try
-        {
+        try {
             final int columnCount = 3;
             final int rowCount = 2;
             // As an example, create a 3 x 2 grid
             GridImageItem gridImageItem = new GridImageItem(heif, columnCount, rowCount,
-                                                            new Size (columnCount * width,
-                                                                      rowCount * height));
-            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++)
-            {
-                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
-                {
+                    new Size(columnCount * width,
+                            rowCount * height));
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                     // Create image items for each grid, as an example we're using the same
                     // data for each image
                     HEVCImageItem hevcImageItem = new HEVCImageItem(heif,
-                                                                    new Size(640, 480),
-                                                                    decoderConfig, imageData);
+                            new Size(640, 480),
+                            decoderConfig, imageData);
                     // Set the image to the correct location
                     gridImageItem.setImage(columnIndex, rowIndex, hevcImageItem);
                 }
@@ -249,9 +228,7 @@ class HEIFExample
 
             // And we save the file
             heif.save(filename);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
