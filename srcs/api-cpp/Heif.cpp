@@ -282,6 +282,7 @@ Result Heif::save(const char* aFileName, HEIF::OutputStreamInterface* aStream)
                 }
             }
         }
+
         if ((HEIF::ErrorCode::OK == error) && (mPrimaryItem))
         {
             error = writer->setPrimaryItem(mPrimaryItem->getId());

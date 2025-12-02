@@ -57,6 +57,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.10'
     implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.googlecode.mp4parser:isoparser:1.1.22'
     implementation 'com.android.support.constraint:constraint-layout:2.0.1'
     implementation project(':api-java')
     implementation project(':android-utility')
