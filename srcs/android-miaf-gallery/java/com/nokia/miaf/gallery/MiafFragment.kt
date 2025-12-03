@@ -14,14 +14,15 @@
 package com.nokia.miaf.gallery
 
 import android.os.Bundle
-import android.support.v4.app.Fragment
-import android.view.*
-
-import com.nokia.heif.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.nokia.heif.Base
+import com.nokia.heif.VideoTrack
 import com.nokia.heif.utility.miaf.MIAFReader
 import com.nokia.miaf.gallery.databinding.FragmentMiafBinding
 import java.io.File
-import java.util.HashSet
 
 class MiafFragment : Fragment() {
     private val mMIAF: MIAFReader = MIAFReader()

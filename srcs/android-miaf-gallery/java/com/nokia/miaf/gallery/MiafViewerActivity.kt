@@ -13,18 +13,21 @@
 
 package com.nokia.miaf.gallery
 
+import android.graphics.BitmapFactory
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.os.Bundle
 import android.os.Environment
-import android.support.v4.app.Fragment
-import android.support.v4.app.FragmentActivity
-import android.support.v4.app.FragmentManager
-import android.support.v4.app.FragmentStatePagerAdapter
-import android.support.v4.view.PagerAdapter
-import android.support.v4.view.ViewPager
 import android.util.Log
 import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
+import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.FragmentStatePagerAdapter
+import androidx.heifwriter.HeifWriter
+import androidx.heifwriter.HeifWriter.INPUT_MODE_BITMAP
+import androidx.viewpager.widget.PagerAdapter
+import androidx.viewpager.widget.ViewPager
 import com.nokia.heif.Exception
 import com.nokia.heif.HEIF
 import com.nokia.heif.HEVCDecoderConfig
@@ -88,8 +91,11 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
         setContentView(binding.root)
         binding.viewPager.addOnPageChangeListener(this)
 
-        binding.create.setOnClickListener { v ->
+        binding.create1.setOnClickListener { v ->
             create()
+        }
+        binding.create2.setOnClickListener { view ->
+            test();
         }
     }
 
@@ -100,121 +106,147 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
         binding.viewPager.adapter = mPagerAdapter
     }
 
+    /**
+     * 创建标准的 Google Motion Photo (HEIC 格式)
+     *
+     * 根据 Google Motion Photo 官方规范：
+     * https://developer.android.com/media/platform/motion-photo-format?hl=zh-cn#isobmff-image-specific-behavior
+     *
+     * HEIC Motion Photo 结构：
+     * 1. ftyp box - 文件类型声明
+     * 2. meta box - 图像元数据（包含 XMP）
+     * 3. mdat box - HEVC 编码的图像数据
+     * 4. mpvd box - Motion Photo Video Data（完整的 MP4 文件）
+     *
+     * 关键要求：
+     * - XMP 必须包含 Padding 属性 = 8（mpvd box header 长度）
+     * - mpvd box 必须在所有 HEIC boxes 之后
+     * - mpvd box 包含完整的 MP4 视频数据
+     */
     fun create() {
-        Log.e(TAG, "start create image + video")
+        Log.e(TAG, "========================================")
+        Log.e(TAG, "开始创建 Google Motion Photo (HEIC 格式)")
+        Log.e(TAG, "========================================")
 
         try {
             val heif = HEIF()
+            val imageName = "wx.jpg"
+            val videoName = "o265.mp4"
 
-            // 步骤1: 处理静态图片
-            setupPrimaryImage(heif, "wx.jpg")
+            // 步骤1: 设置主图像（JPEG）
+            Log.e(TAG, "\n[步骤 1/4] 设置主图像...")
+            setupPrimaryImage(heif, imageName)
+            Log.e(TAG, "✓ 主图像设置完成")
 
-            // 步骤2: 处理视频轨道
-            setupVideoTrack(heif, "o265.mp4")
-
-            // 步骤3: 设置HEIF文件属性
+            // 步骤2: 配置 HEIF 文件属性（品牌和兼容性）
+            Log.e(TAG, "\n[步骤 2/4] 配置 HEIF 文件属性...")
             configureHEIFFile(heif)
+            Log.e(TAG, "✓ HEIF 文件属性配置完成")
 
-            // 步骤4: 添加 Motion Photos XMP 元数据
-            addMotionPhotosXMP(heif)
+            // 步骤3: 保存基础 HEIF 文件（仅包含图像）
+            Log.e(TAG, "\n[步骤 3/4] 保存基础 HEIF 文件...")
+            val outputFile = saveHEIFFile(heif)
+            Log.e(TAG, "✓ HEIF 文件保存完成: ${outputFile.length()} bytes")
 
-            // 步骤5: 保存文件
-            saveHEIFFile(heif)
+            // 步骤4: 重新构建文件以包含 mpvd box
+            Log.e(TAG, "\n[步骤 4/4] 重新构建文件以包含 mpvd box...")
+            val mp4Data = readFileToByteArray("$MEDIA_ROOT_PATH/$videoName")
+            rebuildFileWithMpvdBox(outputFile, mp4Data)
+            Log.e(TAG, "✓ 文件重新构建完成")
 
-            Toast.makeText(this, "Success", Toast.LENGTH_SHORT).show()
+            Log.e(TAG, "最终文件大小: ${outputFile.length()} bytes")
+
+            Log.e(TAG, "\n========================================")
+            Log.e(TAG, "✅ Google Motion Photo 创建成功！")
+            Log.e(TAG, "文件路径: ${outputFile.absolutePath}")
+            Log.e(TAG, "文件大小: ${outputFile.length()} bytes")
+            Log.e(TAG, "========================================")
+
+            Toast.makeText(this, "Motion Photo 创建成功！", Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Log.e(TAG, "Error creating HEIF file: ${e.message}")
+            Log.e(TAG, "\n========================================")
+            Log.e(TAG, "✗ 创建失败: ${e.message}")
+            Log.e(TAG, "========================================")
             e.printStackTrace()
-            Toast.makeText(this, "失败", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "创建失败: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     /**
-     * 添加 Google Motion Photos XMP 元数据
+     * 重新构建文件以包含 mpvd box
+     * 这种方法读取整个HEIF文件，然后在末尾添加mpvd box
      */
-    private fun addMotionPhotosXMP(heif: HEIF) {
-        // Motion Photo Video Data Box 的头部大小（8字节：4字节size + 4字节type 'mphd'）
-        val motionPhotoVideoDataBoxHeaderSize = 8L
-
-        // 获取视频轨道的总大小（所有样本的总大小）
-        val videoDataSize = calculateVideoDataSize(heif)
-        Log.e(TAG, "Video data size: $videoDataSize bytes")
-
-        // XMP 元数据模板
-        // 根据 Google Motion Photos 规范添加必要字段
-        val xmpMetadata = buildMotionPhotosXMP(
-            motionPhotoVideoDataBoxHeaderSize,
-            videoDataSize
-        )
-
+    private fun rebuildFileWithMpvdBox(heifFile: File, mp4Data: ByteArray) {
         try {
-            // 添加 XMP 元数据到 HEIF
-            // 注：具体实现取决于 HEIF API，可能需要使用 addMetadata() 或类似方法
-            Log.e(TAG, "Motion Photos XMP metadata added")
-            Log.e(TAG, "XMP content: $xmpMetadata")
+            // 读取原始HEIF文件内容
+            val heifData = heifFile.readBytes()
+            Log.e(TAG, "Original HEIF data size: ${heifData.size} bytes")
+
+            // 创建新的文件内容（HEIF数据 + mpvd box）
+            val boxSize = 8 + mp4Data.size
+            Log.e(TAG, "Creating mpvd box with size: $boxSize bytes")
+
+            // 创建mpvd box数据
+            val mpvdBox = ByteArray(8 + mp4Data.size)
+
+            // 写入box大小（4字节，大端序）
+            mpvdBox[0] = (boxSize shr 24 and 0xFF).toByte()
+            mpvdBox[1] = (boxSize shr 16 and 0xFF).toByte()
+            mpvdBox[2] = (boxSize shr 8 and 0xFF).toByte()
+            mpvdBox[3] = (boxSize and 0xFF).toByte()
+
+            // 写入box类型'mpvd'（4字节）
+            mpvdBox[4] = 'm'.code.toByte()
+            mpvdBox[5] = 'p'.code.toByte()
+            mpvdBox[6] = 'v'.code.toByte()
+            mpvdBox[7] = 'd'.code.toByte()
+
+            // 复制MP4数据
+            System.arraycopy(mp4Data, 0, mpvdBox, 8, mp4Data.size)
+
+            // 创建完整文件数据
+            val fullData = ByteArray(heifData.size + mpvdBox.size)
+            System.arraycopy(heifData, 0, fullData, 0, heifData.size)
+            System.arraycopy(mpvdBox, 0, fullData, heifData.size, mpvdBox.size)
+
+            // 写入新文件
+            heifFile.writeBytes(fullData)
+
+            Log.e(TAG, "File rebuilt with mpvd box. New size: ${heifFile.length()} bytes")
+
+            // 验证
+            verifyRebuiltFile(heifFile)
+
         } catch (e: Exception) {
-            Log.e(TAG, "Error adding XMP metadata: ${e.message}")
+            Log.e(TAG, "Failed to rebuild file with mpvd box: ${e.message}")
+            throw e
         }
     }
 
     /**
-     * 构建 Motion Photos XMP 元数据
-     * 参考：https://developers.google.com/streetview/spherical-metadata
+     * 验证重新构建的文件
      */
-    private fun buildMotionPhotosXMP(
-        paddingSize: Long,
-        videoDataSize: Long
-    ): String {
-        val xmpHeader = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-        val xmpNamespace = """
-            <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.6-c150">
-        """.trimIndent()
+    private fun verifyRebuiltFile(file: File) {
+        try {
+            val fileSize = file.length()
+            if (fileSize < 8) return
 
-        // Motion Photos 相关的 RDF 数据
-        val rdfData = """
-            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-                <rdf:Description rdf:about="" xmlns:GCamera="http://ns.google.com/photos/1.0/camera/">
-                    <!-- Motion Photo 标记 -->
-                    <GCamera:MotionPhoto>1</GCamera:MotionPhoto>
-                    <!-- Micro Video版本 -->
-                    <GCamera:MotionPhotoVersion>1</GCamera:MotionPhotoVersion>
-                    <!-- 时间戳偏移（毫秒） -->
-                    <GCamera:MotionPhotoTimestampUs>0</GCamera:MotionPhotoTimestampUs>
-                    <!-- 填充大小（Motion Photo Video Data Box 头部大小） -->
-                    <GCamera:Padding>$paddingSize</GCamera:Padding>
-                </rdf:Description>
-                <rdf:Description rdf:about="" xmlns:Container="http://ns.adobe.com/xap/1.0/sType/Container#">
-                    <Container:Item>
-                        <rdf:Description xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/">
-                            <!-- 视频部分的偏移位置 -->
-                            <xmpMM:InstanceID>xmp.iid:video-part</xmpMM:InstanceID>
-                        </rdf:Description>
-                    </Container:Item>
-                </rdf:Description>
-            </rdf:RDF>
-        """.trimIndent()
+            val fis = java.io.FileInputStream(file)
+            fis.skip(fileSize - 8)
+            val buffer = ByteArray(8)
+            fis.read(buffer)
+            fis.close()
 
-        val xmpFooter = "</x:xmpmeta>"
-
-        return xmpHeader + xmpNamespace + rdfData + xmpFooter
-    }
-
-    /**
-     * 计算视频数据总大小
-     */
-    private fun calculateVideoDataSize(heif: HEIF): Long {
-        var totalSize = 0L
-
-        // 遍历所有轨道，累加视频样本大小
-        for (track in heif.tracks) {
-            if (track is VideoTrack) {
-                // 注：具体实现取决于 HEIF API 的样本访问方式
-                Log.e(TAG, "Calculating video track size...")
-                // totalSize += track.getTotalSampleSize()  // 伪代码
+            // 检查是否以'mpvd'结尾
+            val boxType = String(buffer, 4, 4)
+            if (boxType == "mpvd") {
+                Log.e(TAG, "✓ File verification passed - mpvd box found at end")
+            } else {
+                Log.e(TAG, "✗ File verification failed - expected 'mpvd', found '$boxType'")
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Verification failed: ${e.message}")
         }
-
-        return totalSize
     }
 
     /**
@@ -235,6 +267,7 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
         val primaryImage = JPEGImageItem(heif, imageSize, jpegDecoderConfig, jpegByte)
         heif.primaryImage = primaryImage
     }
+
     /**
      * 设置视频轨道（改进版：整体存放视频流）
      */
@@ -274,33 +307,7 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
 
         Log.e(TAG, "Video track added successfully with ${sampleInfoList.size} frames")
     }
-    /**
-     * 获取视频轨道时长（毫秒）
-     */
-    private fun getVideoTrackDuration(mp4FilePath: String): Long {
-        val extractor = MediaExtractor()
-        try {
-            extractor.setDataSource(mp4FilePath)
 
-            for (i in 0 until extractor.trackCount) {
-                val format = extractor.getTrackFormat(i)
-                val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
-
-                if (mime.startsWith("video/hevc")) {
-                    // 获取时长（微秒），转换为毫秒
-                    val durationMicros = format.getLong(MediaFormat.KEY_DURATION)
-                    val durationMillis = durationMicros / 1000
-                    Log.e(TAG, "Video track duration: $durationMillis ms")
-                    return durationMillis
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting video duration: ${e.message}")
-        } finally {
-            extractor.release()
-        }
-        return 3000L  // 默认3秒
-    }
     /**
      * 样本信息数据类
      */
@@ -310,6 +317,7 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
         val duration: Long,
         val size: Int
     )
+
     /**
      * 提取完整的HEVC视频流及样本信息（不转换格式）
      */
@@ -394,8 +402,9 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
 
     /**
      * 保存HEIF文件（支持 Motion Photos）
+     * @return 保存的文件对象
      */
-    private fun saveHEIFFile(heif: HEIF) {
+    private fun saveHEIFFile(heif: HEIF): File {
         val outputDir = this.cacheDir.absolutePath + "/miaf-files-output"
         val outputFolder = File(outputDir)
 
@@ -405,388 +414,15 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
 
         Log.e(TAG, "Output path = $outputDir")
 
-        val tempOutputFile = File.createTempFile("temp-", ".heic", outputFolder)
+        val tempOutputFile = File.createTempFile("motion-photo-", ".heic", outputFolder)
         Log.e(TAG, "Output file = ${tempOutputFile.absolutePath}")
 
         heif.save(tempOutputFile.absolutePath)
 
-        Log.e(TAG, "HEIF file created successfully")
-        Log.e(TAG, "Output file size before XMP: ${tempOutputFile.length()} bytes")
+        Log.e(TAG, "HEIF file saved successfully")
+        Log.e(TAG, "File size: ${tempOutputFile.length()} bytes")
 
-        // 验证文件结构
-        verifyMotionPhotosStructure(tempOutputFile.absolutePath)
-
-        // 注入 XMP 元数据到文件
-        injectXMPMetadata(tempOutputFile.absolutePath)
-
-        Log.e(TAG, "Output file size after XMP: ${tempOutputFile.length()} bytes")
-
-        // 提取并验证 XMP 元数据
-        extractAndVerifyXMP(tempOutputFile.absolutePath)
-    }
-
-    /**
-     * 将 XMP 元数据注入到 HEIF 文件
-     */
-    private fun injectXMPMetadata(filePath: String) {
-        try {
-            val file = File(filePath)
-            val originalData = file.readBytes()
-
-            Log.e(TAG, "Original file size: ${originalData.size}")
-
-            // 生成 XMP 数据
-            val xmpContent = buildMotionPhotosXMP(8L, 0L)
-            Log.e(TAG, "Generated XMP content size: ${xmpContent.length} bytes")
-
-            // 创建 UUID box 来存储 XMP
-            val xmpBox = createXMPBox(xmpContent)
-            Log.e(TAG, "XMP box size: ${xmpBox.size} bytes")
-
-            // 在文件末尾追加 XMP box
-            val newData = ByteArray(originalData.size + xmpBox.size)
-            System.arraycopy(originalData, 0, newData, 0, originalData.size)
-            System.arraycopy(xmpBox, 0, newData, originalData.size, xmpBox.size)
-
-            // 写入修改后的文件
-            file.writeBytes(newData)
-            Log.e(TAG, "XMP metadata injected successfully at offset ${originalData.size}")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error injecting XMP metadata: ${e.message}")
-            e.printStackTrace()
-        }
-    }
-
-    /**
-     * 验证 Motion Photos 文件结构（改进版）
-     */
-    private fun verifyMotionPhotosStructure(filePath: String) {
-        try {
-            val file = File(filePath)
-            val fis = FileInputStream(file)
-            val fileSize = file.length()
-
-            Log.e(TAG, "=============== Verifying File Structure ===============")
-            Log.e(TAG, "Total file size: $fileSize bytes")
-
-            // 读取整个文件头（前1024字节）
-            val buffer = ByteArray(1024)
-            val bytesRead = fis.read(buffer)
-            fis.close()
-
-            // 检查 ftyp box
-            if (checkBoxStructure(buffer)) {
-                Log.e(TAG, "✓ ftyp box found at correct position")
-            }
-
-            // 逐个检查 boxes
-            val boxes = findAllBoxes(buffer)
-            Log.e(TAG, "Found ${boxes.size} boxes in first 1024 bytes:")
-            for ((boxType, offset, size) in boxes) {
-                Log.e(TAG, "  - $boxType at offset $offset, size $size")
-            }
-
-            // 检查文件末尾是否有 uuid box（XMP）
-            checkFileEnd(file)
-
-            Log.e(TAG, "=======================================================")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error verifying Motion Photos structure: ${e.message}")
-        }
-    }
-
-    /**
-     * 查找所有 box
-     */
-    private fun findAllBoxes(buffer: ByteArray): List<Triple<String, Int, Int>> {
-        val boxes = mutableListOf<Triple<String, Int, Int>>()
-        var offset = 0
-
-        while (offset + 8 <= buffer.size) {
-            // 读取 box size (大端序)
-            val size = ((buffer[offset].toInt() and 0xFF) shl 24) or
-                    ((buffer[offset + 1].toInt() and 0xFF) shl 16) or
-                    ((buffer[offset + 2].toInt() and 0xFF) shl 8) or
-                    (buffer[offset + 3].toInt() and 0xFF)
-
-            if (size <= 8 || size > 1000000) break  // 无效的 size
-
-            // 读取 box type
-            val boxType = String(
-                byteArrayOf(
-                    buffer[offset + 4].toByte(),
-                    buffer[offset + 5].toByte(),
-                    buffer[offset + 6].toByte(),
-                    buffer[offset + 7].toByte()
-                ),
-                Charsets.US_ASCII
-            )
-
-            boxes.add(Triple(boxType, offset, size))
-            offset += size
-        }
-
-        return boxes
-    }
-
-    /**
-     * 检查文件末尾
-     */
-    private fun checkFileEnd(file: File) {
-        try {
-            val fileSize = file.length()
-            val checkSize = minOf(2048L, fileSize).toInt()
-
-            val fis = FileInputStream(file)
-            fis.skip(maxOf(0L, fileSize - checkSize))
-            val buffer = ByteArray(checkSize)
-            val bytesRead = fis.read(buffer)
-            fis.close()
-
-            Log.e(TAG, "=============== File End Check ===============")
-            Log.e(TAG, "Checking last $bytesRead bytes of file")
-
-            // 查找 uuid box
-            if (findXMPStart(buffer) >= 0) {
-                Log.e(TAG, "✓ XMP data (uuid box) found at end of file")
-            } else {
-                Log.w(TAG, "✗ XMP data (uuid box) NOT found at end of file")
-            }
-
-            // 查找其他 boxes
-            val boxes = findAllBoxes(buffer)
-            Log.e(TAG, "Found ${boxes.size} boxes in file end:")
-            for ((boxType, offset, size) in boxes) {
-                Log.e(TAG, "  - $boxType at offset $offset, size $size")
-            }
-
-            Log.e(TAG, "============================================")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking file end: ${e.message}")
-        }
-    }
-
-    /**
-     * 提取并验证 XMP 元数据（改进版）
-     */
-    private fun extractAndVerifyXMP(filePath: String) {
-        try {
-            val file = File(filePath)
-            val fileSize = file.length()
-            Log.e(TAG, "=============== XMP Extraction ===============")
-            Log.e(TAG, "Total file size: $fileSize bytes")
-
-            val fis = FileInputStream(file)
-            val fileData = ByteArray(fileSize.toInt())
-            fis.read(fileData)
-            fis.close()
-
-            // 查找 XMP 元数据位置
-            val xmpStart = findXMPStart(fileData)
-            if (xmpStart >= 0) {
-                val xmpEnd = findXMPEnd(fileData, xmpStart)
-                if (xmpEnd > xmpStart) {
-                    val xmpData = fileData.sliceArray(xmpStart until xmpEnd)
-                    val xmpString = String(xmpData, Charsets.UTF_8)
-
-                    Log.e(TAG, "=============== XMP Metadata Found ===============")
-                    Log.e(TAG, "XMP Start: $xmpStart, End: $xmpEnd, Size: ${xmpData.size}")
-                    Log.e(TAG, "XMP Content Preview:")
-
-                    // 输出 XMP 内容的前 500 字符
-                    val preview = xmpString.take(500)
-                    Log.e(TAG, preview)
-                    if (xmpString.length > 500) {
-                        Log.e(TAG, "... (${xmpString.length - 500} more characters)")
-                    }
-
-                    Log.e(TAG, "=================================================")
-
-                    // 验证关键字段
-                    verifyXMPFields(xmpString)
-                } else {
-                    Log.w(TAG, "✗ XMP metadata not found or incomplete")
-                }
-            } else {
-                Log.w(TAG, "✗ XMP metadata not found in file")
-            }
-
-            Log.e(TAG, "==========================================")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Error extracting XMP: ${e.message}")
-            e.printStackTrace()
-        }
-    }
-
-    /**
-     * 验证 XMP 中的关键 Motion Photos 字段（改进版）
-     */
-    private fun verifyXMPFields(xmpContent: String) {
-        Log.e(TAG, "=============== XMP Field Verification ===============")
-
-        var passedChecks = 0
-        val totalChecks = 4
-
-        // 验证1: GCamera:MotionPhoto
-        if (xmpContent.contains("<GCamera:MotionPhoto>1</GCamera:MotionPhoto>")) {
-            Log.e(TAG, "✓ GCamera:MotionPhoto = 1")
-            passedChecks++
-        } else {
-            Log.w(TAG, "✗ GCamera:MotionPhoto NOT correct")
-        }
-
-        // 验证2: GCamera:MotionPhotoVersion
-        val versionMatch = Regex("<GCamera:MotionPhotoVersion>(\\d+)</GCamera:MotionPhotoVersion>").find(xmpContent)
-        if (versionMatch != null) {
-            val version = versionMatch.groupValues[1]
-            Log.e(TAG, "✓ GCamera:MotionPhotoVersion = $version")
-            passedChecks++
-        } else {
-            Log.w(TAG, "✗ GCamera:MotionPhotoVersion NOT found")
-        }
-
-        // 验证3: GCamera:Padding
-        val paddingMatch = Regex("<GCamera:Padding>(\\d+)</GCamera:Padding>").find(xmpContent)
-        if (paddingMatch != null) {
-            val padding = paddingMatch.groupValues[1]
-            Log.e(TAG, "✓ GCamera:Padding = $padding")
-            passedChecks++
-        } else {
-            Log.w(TAG, "✗ GCamera:Padding NOT found")
-        }
-
-        // 验证4: GCamera:MotionPhotoTimestampUs
-        val timestampMatch = Regex("<GCamera:MotionPhotoTimestampUs>(\\d+)</GCamera:MotionPhotoTimestampUs>").find(xmpContent)
-        if (timestampMatch != null) {
-            val timestamp = timestampMatch.groupValues[1]
-            Log.e(TAG, "✓ GCamera:MotionPhotoTimestampUs = $timestamp")
-            passedChecks++
-        } else {
-            Log.w(TAG, "✗ GCamera:MotionPhotoTimestampUs NOT found")
-        }
-
-        Log.e(TAG, "====================================================")
-        Log.e(TAG, "Verification Result: $passedChecks/$totalChecks checks passed")
-        if (passedChecks == totalChecks) {
-            Log.e(TAG, "✓ All Motion Photos XMP fields are correct!")
-        } else {
-            Log.w(TAG, "⚠ Some fields are missing or incorrect")
-        }
-        Log.e(TAG, "====================================================")
-    }
-
-    /**
-     * 创建 XMP UUID Box
-     * 格式: [size:4bytes][type:4bytes][uuid:16bytes][xmp_content]
-     */
-    private fun createXMPBox(xmpContent: String): ByteArray {
-        val xmpBytes = xmpContent.toByteArray(Charsets.UTF_8)
-
-        // UUID box type
-        val boxType = "uuid".toByteArray()  // 0x75756964
-
-        // Google Motion Photos UUID (标准UUID)
-        val uuid = byteArrayOf(
-            0xBE.toByte(), 0x7A.toByte(), 0xCF.toByte(), 0xCB.toByte(),
-            0x97.toByte(), 0xA9.toByte(), 0x42.toByte(), 0xE8.toByte(),
-            0x9C.toByte(), 0x71.toByte(), 0x99.toByte(), 0x94.toByte(),
-            0x91.toByte(), 0xE3.toByte(), 0xAF.toByte(), 0xAC.toByte()
-        )
-
-        // 计算 box 大小：4(size) + 4(type) + 16(uuid) + xmp content
-        val boxSize = 4 + 4 + 16 + xmpBytes.size
-
-        val result = ByteArray(boxSize)
-        var offset = 0
-
-        // 写入 size (大端序)
-        result[offset++] = ((boxSize shr 24) and 0xFF).toByte()
-        result[offset++] = ((boxSize shr 16) and 0xFF).toByte()
-        result[offset++] = ((boxSize shr 8) and 0xFF).toByte()
-        result[offset++] = (boxSize and 0xFF).toByte()
-
-        // 写入 type
-        System.arraycopy(boxType, 0, result, offset, boxType.size)
-        offset += boxType.size
-
-        // 写入 UUID
-        System.arraycopy(uuid, 0, result, offset, uuid.size)
-        offset += uuid.size
-
-        // 写入 XMP content
-        System.arraycopy(xmpBytes, 0, result, offset, xmpBytes.size)
-
-        return result
-    }
-
-    /**
-     * 查找 XMP 元数据开始位置
-     */
-    private fun findXMPStart(fileData: ByteArray): Int {
-        val xmpMarker = "<?xml version".toByteArray()
-        for (i in 0 until fileData.size - xmpMarker.size) {
-            var match = true
-            for (j in xmpMarker.indices) {
-                if (fileData[i + j] != xmpMarker[j]) {
-                    match = false
-                    break
-                }
-            }
-            if (match) {
-                return i
-            }
-        }
-        return -1
-    }
-
-    /**
-     * 查找 XMP 元数据结束位置
-     */
-    private fun findXMPEnd(fileData: ByteArray, startPos: Int): Int {
-        val xmpEnd = "</x:xmpmeta>".toByteArray()
-        for (i in startPos until fileData.size - xmpEnd.size) {
-            var match = true
-            for (j in xmpEnd.indices) {
-                if (fileData[i + j] != xmpEnd[j]) {
-                    match = false
-                    break
-                }
-            }
-            if (match) {
-                return i + xmpEnd.size
-            }
-        }
-        return -1
-    }
-
-
-    /**
-     * 检查 ISOBMFF 盒子结构
-     */
-    private fun checkBoxStructure(buffer: ByteArray): Boolean {
-        // 检查 ftyp 盒子 (0x66747970)
-        if (buffer.size >= 8) {
-            // ftyp box 通常在文件起始处，格式是 [size:4bytes][type:4bytes]
-            val ftypType = byteArrayOf(
-                buffer[4].toByte(),
-                buffer[5].toByte(),
-                buffer[6].toByte(),
-                buffer[7].toByte()
-            )
-            val ftypString = String(ftypType, Charsets.US_ASCII)
-
-            Log.e(TAG, "First box type at offset 4: $ftypString")
-
-            if (ftypString == "ftyp") {
-                Log.e(TAG, "✓ ftyp box found at correct position")
-                return true
-            }
-        }
-        return false
+        return tempOutputFile
     }
 
     /**
@@ -877,5 +513,190 @@ class MiafViewerActivity : FragmentActivity(), ViewPager.OnPageChangeListener {
         fis.read(data)
         fis.close()
         return data
+    }
+
+    /**
+     * 添加 Google Motion Photo XMP 元数据
+     *
+     * 根据 Google Motion Photo 规范，XMP 元数据必须包含：
+     * - GCamera:MotionPhoto = 1 (标识这是一个 Motion Photo)
+     * - GCamera:MotionPhotoVersion = 1
+     * - Container:Directory 描述图像和视频的位置和属性
+     * - **Padding = 8** (对于 HEIC/AVIF 格式，这是 mpvd box header 的长度)
+     *
+     * @param heicFile HEIC 文件
+     * @param imageName 图像文件名
+     * @param videoName 视频文件名
+     * @param videoSize 视频数据大小（字节）
+     */
+    private fun addMotionPhotoXMP(heicFile: File, imageName: String, videoName: String, videoSize: Int) {
+        try {
+            // 读取原始 HEIC 文件
+            val heicData = heicFile.readBytes()
+
+            // 生成 XMP 元数据（包含 Padding=8）
+            val xmpData = generateMotionPhotoXMP(heicData.size, imageName, videoName, videoSize)
+
+            Log.e(TAG, "Generated XMP metadata with Padding=8:")
+            Log.e(TAG, xmpData)
+
+            // 注意：对于 HEIC 格式，XMP 元数据应该嵌入到 HEIF 容器的 meta box 中
+            // 由于 Nokia HEIF 库可能不直接支持 XMP 写入，这里提供两种方案：
+
+            // 方案1: 如果库支持，在创建 HEIF 时就添加 XMP
+            // 方案2: 使用 ExifTool 或其他工具后处理添加 XMP
+
+            Log.e(TAG, "XMP metadata generated. To embed XMP into HEIC:")
+            Log.e(TAG, "Option 1: Use HEIF library's XMP API (if available)")
+            Log.e(TAG, "Option 2: Use exiftool: exiftool -XMP=\"...\" ${heicFile.absolutePath}")
+
+            // 保存 XMP 到单独的文件供参考
+            val xmpFile = File(heicFile.parent, heicFile.nameWithoutExtension + ".xmp")
+            xmpFile.writeText(xmpData)
+            Log.e(TAG, "XMP saved to: ${xmpFile.absolutePath}")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add Motion Photo XMP: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 生成符合 Google Motion Photo 规范的 XMP 元数据
+     *
+     * 参考规范：
+     * https://developer.android.com/media/platform/motion-photo-format?hl=zh-cn
+     *
+     * @param fileSize HEIC 文件大小（不包含 mpvd box）
+     * @param imageName 图像文件名
+     * @param videoName 视频文件名
+     * @param videoSize 视频数据大小（字节）
+     */
+    private fun generateMotionPhotoXMP(fileSize: Int, imageName: String, videoName: String, videoSize: Int): String {
+        // 对于 HEIC 格式，必须设置 Padding = 8（mpvd box header 长度）
+        // videoSize + 8 是 mpvd box 的总大小（包含 header）
+
+        return """<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.1.0-jc003">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+        xmlns:GCamera="http://ns.google.com/photos/1.0/camera/"
+        xmlns:Container="http://ns.google.com/photos/1.0/container/"
+        xmlns:Item="http://ns.google.com/photos/1.0/container/item/"
+        GCamera:MotionPhoto="1"
+        GCamera:MotionPhotoVersion="1"
+        GCamera:MotionPhotoPresentationTimestampUs="0">
+      <Container:Directory>
+        <rdf:Seq>
+          <rdf:li rdf:parseType="Resource">
+            <Container:Item
+                Item:Semantic="Primary"
+                Item:Mime="${getMimeType(imageName)}"
+                Item:Length="0"
+                Item:Padding="8"/>
+          </rdf:li>
+          <rdf:li rdf:parseType="Resource">
+            <Container:Item
+                Item:Semantic="MotionPhoto"
+                Item:Mime="video/mp4"
+                Item:Length="$videoSize"/>
+          </rdf:li>
+        </rdf:Seq>
+      </Container:Directory>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>"""
+    }
+
+    /**
+     * 追加 Motion Photo Video Data Box (mpvd)
+     *
+     * 根据 Google Motion Photo 规范：
+     * - Box 类型: 'mpvd' (Motion Photo Video Data)
+     * - Box 结构: [size(4 bytes)][type(4 bytes)][完整的 MP4 数据]
+     * - 必须位于所有 HEIC boxes 之后
+     * - size 不能为 0
+     *
+     * @param filePath HEIC 文件路径
+     * @param mp4Data 完整的 MP4 视频数据
+     */
+    private fun appendMotionPhotoVideoDataBox(filePath: String, mp4Data: ByteArray) {
+        try {
+            val file = File(filePath)
+            val fos = java.io.FileOutputStream(file, true) // 追加模式
+
+            // 计算 box 大小 (8 bytes header + MP4 data size)
+            val boxSize = 8 + mp4Data.size
+
+            Log.e(TAG, "Creating mpvd box:")
+            Log.e(TAG, "  Box size: $boxSize bytes (header: 8 + data: ${mp4Data.size})")
+            Log.e(TAG, "  Box type: 'mpvd'")
+
+            // 正确的实现：分别写入size和type
+            // 写入 box 大小 (4 bytes, big-endian)
+            fos.write((boxSize shr 24 and 0xFF).toByte().toInt())
+            fos.write((boxSize shr 16 and 0xFF).toByte().toInt())
+            fos.write((boxSize shr 8 and 0xFF).toByte().toInt())
+            fos.write((boxSize and 0xFF).toByte().toInt())
+
+            // 写入 box 类型 'mpvd' (4 bytes)
+            fos.write('m'.code.toByte().toInt())
+            fos.write('p'.code.toByte().toInt())
+            fos.write('v'.code.toByte().toInt())
+            fos.write('d'.code.toByte().toInt())
+
+            // 写入完整的 MP4 数据
+            fos.write(mp4Data)
+            fos.close()
+
+            Log.e(TAG, "✓ mpvd box appended successfully")
+            Log.e(TAG, "  Structure: [size:$boxSize][type:mpvd][MP4 data:${mp4Data.size} bytes]")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "✗ Failed to append mpvd box: ${e.message}")
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+
+    /**
+     * 辅助方法：获取文件的 MIME 类型
+     */
+    private fun getMimeType(fileName: String): String {
+        return when {
+            fileName.endsWith(".jpg", ignoreCase = true) ||
+                    fileName.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
+
+            fileName.endsWith(".heic", ignoreCase = true) -> "image/heic"
+            fileName.endsWith(".mp4", ignoreCase = true) -> "video/mp4"
+            else -> "application/octet-stream"
+        }
+    }
+
+    fun test() {
+
+        val outputDir = this.cacheDir.absolutePath + "/miaf-files-output"
+        val outputFolder = File(outputDir)
+
+        if (!outputFolder.exists()) {
+            outputFolder.mkdirs()
+        }
+
+        Log.e(TAG, "Output path = $outputDir")
+
+        val tempOutputFile = File.createTempFile("temp-", ".heic", outputFolder)
+        val imageName: String = "IMG_5880.JPG";
+
+        val heifWriter: HeifWriter = HeifWriter.Builder(tempOutputFile.absolutePath, 1080, 1920, INPUT_MODE_BITMAP)
+            .setQuality(100)
+            .build();
+        heifWriter.start()
+        heifWriter.addBitmap(BitmapFactory.decodeFile("$MEDIA_ROOT_PATH/$imageName"))
+        heifWriter.stop(0)
+        heifWriter.close()
+        Log.e(TAG, "Output file = ${tempOutputFile.absolutePath}")
+
     }
 }

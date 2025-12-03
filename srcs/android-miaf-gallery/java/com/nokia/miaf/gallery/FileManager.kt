@@ -18,10 +18,10 @@ val POSTFIXES: Array<String> = arrayOf(".heic", ".heif", ".hif", ".avcs", ".avci
 
 fun loadFolder(folder: File): List<File>
 {
-    var fileList: MutableList<File> = mutableListOf()
+    val fileList: MutableList<File> = mutableListOf()
     if (folder.exists() && folder.isDirectory)
     {
-        var files = folder.listFiles()
+        val files = folder.listFiles()
         for (file in files)
         {
             if (!file.isDirectory)

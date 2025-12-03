@@ -15,9 +15,10 @@ package com.nokia.heif.utility.codec;
 
 import android.media.MediaCodec;
 import android.media.MediaFormat;
-import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.Surface;
+
+import androidx.annotation.NonNull;
 
 import com.nokia.heif.CodedImageItem;
 import com.nokia.heif.Exception;

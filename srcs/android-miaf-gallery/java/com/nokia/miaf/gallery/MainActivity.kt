@@ -33,39 +33,31 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
-        {
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             launchGridActivity()
-        }
-        else if (!requestPending)
-        {
+        } else if (!requestPending) {
             requestRequiredPermissions()
         }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQUEST_READ_EXTERNAL)
-        {
-            if (grantResults.size == 2 && grantResults.get(0) == PackageManager.PERMISSION_GRANTED && grantResults.get(1) == PackageManager.PERMISSION_GRANTED)
-            {
+        if (requestCode == PERMISSION_REQUEST_READ_EXTERNAL) {
+            if (grantResults.size == 2 && grantResults.get(0) == PackageManager.PERMISSION_GRANTED && grantResults.get(1) == PackageManager.PERMISSION_GRANTED) {
                 launchGridActivity()
             }
         }
     }
 
-    private fun launchGridActivity()
-    {
+    private fun launchGridActivity() {
         val intent = Intent(this, MiafViewerActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
         finish()
     }
 
-    private fun requestRequiredPermissions()
-    {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE))
-        {
+    private fun requestRequiredPermissions() {
+        if (shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)) {
             val dialogBuilder = AlertDialog.Builder(this)
             dialogBuilder.setTitle(R.string.permissions_title)
             dialogBuilder.setMessage(R.string.permissions_message)
@@ -74,14 +66,12 @@ class MainActivity : Activity() {
                 requestPending = true
             })
 
-            dialogBuilder.setNegativeButton(R.string.decline, {_, _ ->
+            dialogBuilder.setNegativeButton(R.string.decline, { _, _ ->
                 finish()
             })
             val dialog = dialogBuilder.create()
             dialog.show()
-        }
-        else
-        {
+        } else {
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE), PERMISSION_REQUEST_READ_EXTERNAL)
             requestPending = true
         }

@@ -28,7 +28,7 @@ allprojects {
 
 ext {
     compileSdkVersion = 30
-    minSdkVersion = 27
+    minSdkVersion = 28
     targetSdkVersion = 30
 
     chosenAbiFilters = ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"]

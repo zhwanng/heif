@@ -13,9 +13,11 @@
 
 package com.nokia.heif.utility.ui;
 
-import android.support.annotation.Nullable;
+
 import android.util.Log;
 import android.util.Pair;
+
+import androidx.annotation.Nullable;
 
 import com.nokia.heif.utility.codec.CodecUtility;
 

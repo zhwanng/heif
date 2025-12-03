@@ -12,7 +12,7 @@ def galleryResourcePath = file(gallerySourcePath + "/res/").path
 
 android {
     namespace 'com.nokia.miaf.gallery'
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdk 34
 
     defaultConfig {
 
@@ -55,10 +55,14 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.4.10'
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "androidx.appcompat:appcompat:1.7.1"
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+
+    implementation "androidx.heifwriter:heifwriter:1.1.0"
     implementation 'com.googlecode.mp4parser:isoparser:1.1.22'
-    implementation 'com.android.support.constraint:constraint-layout:2.0.1'
+    implementation 'com.adobe.xmp:xmpcore:6.1.10'
+
     implementation project(':api-java')
     implementation project(':android-utility')
 }
